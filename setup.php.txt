@@ -1,0 +1,57 @@
+<?php
+require 'config.php';
+
+// Create users table
+$sql = "CREATE TABLE IF NOT EXISTS users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'issuer',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Users table created successfully<br>";
+} else {
+    echo "❌ Error: " . $conn->error . "<br>";
+}
+
+// Create certificates table
+$sql = "CREATE TABLE IF NOT EXISTS certificates (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    cert_code VARCHAR(100) UNIQUE NOT NULL,
+    student_name VARCHAR(100) NOT NULL,
+    student_email VARCHAR(100),
+    course_name VARCHAR(150) NOT NULL,
+    cert_hash VARCHAR(64) NOT NULL,
+    issue_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Certificates table created successfully<br>";
+} else {
+    echo "❌ Error: " . $conn->error . "<br>";
+}
+
+// Insert demo users
+$admin_hash = hash('sha256', 'admin123');
+$issuer_hash = hash('sha256', 'issuer123');
+
+$sql = "INSERT INTO users (username, password_hash, role) VALUES 
+('admin', '$admin_hash', 'admin'),
+('issuer', '$issuer_hash', 'issuer')";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Demo users created successfully<br>";
+} else {
+    if (strpos($conn->error, 'Duplicate') === false) {
+        echo "❌ Error: " . $conn->error . "<br>";
+    }
+}
+
+echo "<br><strong>Database setup complete!</strong><br>";
+echo '<a href="index.php">Go to Login Page</a>';
+
+$conn->close();
+?>
