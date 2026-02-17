@@ -8,7 +8,7 @@ $verify_result = null;
 // LOGIN
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'login') {
     $username = $_POST['username'];
-   $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+   password_hash($_POST['password'], PASSWORD_DEFAULT);
 
     
     $stmt = $conn->prepare('SELECT id, username, role FROM users WHERE username = ? AND password_hash = ?');
