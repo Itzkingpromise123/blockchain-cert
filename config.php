@@ -1,18 +1,29 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 session_start();
 
-$host = getenv("DB_HOST");
-$db   = getenv("DB_NAME");
-$user = getenv("DB_USER");
-$pass = getenv("DB_PASSWORD");
+// Get database credentials from Railway environment variables
+$db_host = getenv('MYSQLHOST') ?: 'localhost';
+$db_user = getenv('MYSQLUSER') ?: 'root';
+$db_pass = getenv('MYSQLPASSWORD') ?: '';
+$db_name = getenv('MYSQLDATABASE') ?: 'blockchain_cert';
+$db_port = getenv('MYSQLPORT') ?: 3306;
 
-try {
-    $conn = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+// Create connection
+$conn = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
+
+// Check connection
+if ($conn->connect_error) {
+    die('Connection failed: ' . $conn->connect_error);
+}
+
+$conn->set_charset('utf8');
+
+function generateCertificateHash($studentName, $email, $course, $date) {
+    $data = $studentName . $email . $course . $date;
+    return hash('sha256', $data);
+}
+
+function hashPassword($password) {
+    return hash('sha256', $password);
 }
 ?>
