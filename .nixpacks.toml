@@ -1,5 +1,1 @@
-[providers]
-runImage = "nixpkgs-php80"
 
-[phases.setup]
-cmds = ["apt-get update && apt-get install -y php-mysql"]
