@@ -1,22 +1,24 @@
 <?php
 session_start();
 
-// Get database credentials from Railway environment variables
-$db_host = getenv('MYSQLHOST') ?: 'localhost';
-$db_user = getenv('MYSQLUSER') ?: 'root';
-$db_pass = getenv('MYSQLPASSWORD') ?: '';
-$db_name = getenv('MYSQLDATABASE') ?: 'blockchain_cert';
-$db_port = getenv('MYSQLPORT') ?: 3306;
+// Railway provides these as environment variables
+$db_host = $_ENV['MYSQLHOST'] ?? getenv('MYSQLHOST') ?? 'localhost';
+$db_user = $_ENV['MYSQLUSER'] ?? getenv('MYSQLUSER') ?? 'root';
+$db_pass = $_ENV['MYSQLPASSWORD'] ?? getenv('MYSQLPASSWORD') ?? '';
+$db_name = $_ENV['MYSQLDATABASE'] ?? getenv('MYSQLDATABASE') ?? 'railway';
+$db_port = $_ENV['MYSQLPORT'] ?? getenv('MYSQLPORT') ?? 3306;
 
-// Create connection
-$conn = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
+// Create connection using MySQLi
+$conn = new mysqli($db_host, $db_user, $db_pass, $db_name, (int)$db_port);
 
 // Check connection
 if ($conn->connect_error) {
-    die('Connection failed: ' . $conn->connect_error);
+    // For debugging - remove this in production
+    error_log("Database Error: " . $conn->connect_error);
+    die('Database connection failed. Please contact support.');
 }
 
-$conn->set_charset('utf8');
+$conn->set_charset('utf8mb4');
 
 function generateCertificateHash($studentName, $email, $course, $date) {
     $data = $studentName . $email . $course . $date;
