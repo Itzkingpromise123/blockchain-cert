@@ -2,57 +2,70 @@
 require 'config.php';
 session_start();
 
-if($_SESSION['role'] !== 'student') {
-    header("Location: login.php");
+if(!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
+    header('Location: index.php');
     exit;
 }
 
 $student_id = $_SESSION['user_id'];
-$query = "SELECT * FROM certificates WHERE user_id = ?";
-$stmt = $conn->prepare($query);
-$stmt->bind_param("i", $student_id);
-$stmt->execute();
-$result = $stmt->get_result();
+try {
+    $stmt = $conn->prepare('SELECT * FROM certificates WHERE user_id = ? ORDER BY created_at DESC');
+    $stmt->execute([$student_id]);
+    $certificates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $certificates = [];
+}
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>My Certificates</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
 </head>
 <body>
-<nav class="navbar navbar-dark bg-success">
+
+<nav class="navbar navbar-dark bg-success sticky-top">
     <span class="navbar-brand">📜 MY CERTIFICATES</span>
-    <a href="logout.php" class="btn btn-light">Logout</a>
+    <div>
+        <span class="text-white mr-3">Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?></span>
+        <a href="logout.php" class="btn btn-light btn-sm">Logout</a>
+    </div>
 </nav>
 
 <div class="container mt-5">
-    <h2>Your Certificates</h2>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Certificate Code</th>
-                <th>Course</th>
-                <th>Issue Date</th>
-                <th>Hash</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while($row = $result->fetch_assoc()): ?>
-            <tr>
-                <td><?php echo $row['cert_code']; ?></td>
-                <td><?php echo $row['course_name']; ?></td>
-                <td><?php echo $row['issue_date']; ?></td>
-                <td><code><?php echo substr($row['cert_hash'], 0, 16); ?>...</code></td>
-                <td>
-                    <a href="download_certificate.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary">Download</a>
-                </td>
-            </tr>
-            <?php endwhile; ?>
-        </tbody>
-    </table>
+    <h2 class="mb-4">Your Certificates</h2>
+    
+    <?php if(empty($certificates)): ?>
+        <div class="alert alert-info">
+            <p>You don't have any certificates yet.</p>
+        </div>
+    <?php else: ?>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Certificate Code</th>
+                        <th>Course</th>
+                        <th>Issue Date</th>
+                        <th>Hash (First 16 chars)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach($certificates as $cert): ?>
+                    <tr>
+                        <td><code><?php echo htmlspecialchars($cert['cert_code']); ?></code></td>
+                        <td><?php echo htmlspecialchars($cert['course_name']); ?></td>
+                        <td><?php echo htmlspecialchars($cert['issue_date']); ?></td>
+                        <td><code><?php echo substr($cert['cert_hash'], 0, 16); ?>...</code></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
 </div>
 
 </body>
