@@ -2,25 +2,28 @@
 require 'config.php';
 session_start();
 
-if($_SESSION['role'] !== 'verifier') {
-    header("Location: login.php");
+if(!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'verifier') {
+    header('Location: index.php');
     exit;
 }
 
 $verify_result = null;
-if($_POST) {
-    $search_hash = $_POST['cert_hash'];
-    $query = "SELECT * FROM certificates WHERE cert_hash = ?";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("s", $search_hash);
-    $stmt->execute();
-    $result = $stmt->get_result();
+if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cert_hash'])) {
+    $search_hash = trim($_POST['cert_hash']);
     
-    if($result->num_rows > 0) {
-        $verify_result = $result->fetch_assoc();
-        $verify_result['valid'] = true;
-    } else {
-        $verify_result = ['valid' => false];
+    try {
+        $stmt = $conn->prepare('SELECT * FROM certificates WHERE cert_hash = ?');
+        $stmt->execute([$search_hash]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if($result) {
+            $verify_result = $result;
+            $verify_result['valid'] = true;
+        } else {
+            $verify_result = ['valid' => false];
+        }
+    } catch (PDOException $e) {
+        $verify_result = ['valid' => false, 'error' => $e->getMessage()];
     }
 }
 ?>
@@ -28,40 +31,52 @@ if($_POST) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Verify Certificates</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Verify Certificate</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
 </head>
 <body>
-<nav class="navbar navbar-dark bg-warning">
+
+<nav class="navbar navbar-dark bg-warning sticky-top">
     <span class="navbar-brand">✅ VERIFY CERTIFICATE</span>
-    <a href="logout.php" class="btn btn-dark">Logout</a>
+    <div>
+        <span class="text-dark mr-3">Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?></span>
+        <a href="logout.php" class="btn btn-dark btn-sm">Logout</a>
+    </div>
 </nav>
 
-<div class="container mt-5">
+<div class="container mt-5" style="max-width: 600px;">
     <div class="card">
         <div class="card-header bg-warning">
-            <h4>Verify a Certificate</h4>
+            <h4 class="mb-0">Verify a Certificate</h4>
         </div>
         <div class="card-body">
             <form method="POST">
                 <div class="form-group">
-                    <label>Enter Certificate Hash</label>
-                    <textarea class="form-control" name="cert_hash" rows="4" required></textarea>
+                    <label><strong>Enter Certificate Hash</strong></label>
+                    <textarea class="form-control" name="cert_hash" rows="4" placeholder="Paste the SHA-256 hash here" required></textarea>
                 </div>
-                <button type="submit" class="btn btn-warning btn-block">Verify</button>
+                <button type="submit" class="btn btn-warning btn-block btn-lg">Verify</button>
             </form>
 
             <?php if($verify_result): ?>
                 <?php if($verify_result['valid']): ?>
-                    <div class="alert alert-success mt-3">
-                        <h5>✅ CERTIFICATE IS VALID!</h5>
-                        <p><strong>Student:</strong> <?php echo $verify_result['student_name']; ?></p>
-                        <p><strong>Course:</strong> <?php echo $verify_result['course_name']; ?></p>
-                        <p><strong>Date:</strong> <?php echo $verify_result['issue_date']; ?></p>
+                    <div class="alert alert-success mt-4">
+                        <h5>✅ CERTIFICATE IS VALID AND AUTHENTIC!</h5>
+                        <hr>
+                        <p><strong>Certificate Code:</strong> <?php echo htmlspecialchars($verify_result['cert_code']); ?></p>
+                        <p><strong>Student Name:</strong> <?php echo htmlspecialchars($verify_result['student_name']); ?></p>
+                        <p><strong>Email:</strong> <?php echo htmlspecialchars($verify_result['student_email']); ?></p>
+                        <p><strong>Course:</strong> <?php echo htmlspecialchars($verify_result['course_name']); ?></p>
+                        <p><strong>Issue Date:</strong> <?php echo htmlspecialchars($verify_result['issue_date']); ?></p>
+                        <hr>
+                        <p class="text-success"><strong>✓ This certificate has NOT been tampered with</strong></p>
                     </div>
                 <?php else: ?>
-                    <div class="alert alert-danger mt-3">
-                        <h5>❌ CERTIFICATE NOT FOUND!</h5>
+                    <div class="alert alert-danger mt-4">
+                        <h5>❌ CERTIFICATE NOT FOUND OR INVALID!</h5>
+                        <p>The certificate hash was not found in our database.</p>
                     </div>
                 <?php endif; ?>
             <?php endif; ?>
