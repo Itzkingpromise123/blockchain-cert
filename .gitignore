@@ -1,3 +1,5 @@
 certificates.db
 *.db
 .DS_Store
+node_modules/
+.env
