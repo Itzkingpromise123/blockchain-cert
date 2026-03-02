@@ -37,31 +37,38 @@ try {
     $count = $stmt->fetchColumn();
     
     if($count == 0) {
-        // Insert demo users only if they don't exist
+        // Hash the passwords
         $admin_hash = hash('sha256', 'admin123');
         $student_hash = hash('sha256', 'pass123');
         $verifier_hash = hash('sha256', 'verify123');
         
-        $sql = "INSERT INTO users (username, password_hash, role) VALUES 
-                (?, ?, ?),
-                (?, ?, ?),
-                (?, ?, ?)";
-        
-        $stmt = $conn->prepare($sql);
+        // Insert admin user
+        $stmt = $conn->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
         $stmt->execute(['admin', $admin_hash, 'admin']);
-        $stmt->execute(['student1', $student_hash, 'student']);
-        $stmt->execute(['verifier1', $verifier_hash, 'verifier']);
+        echo "✅ Admin user created<br>";
         
-        echo "✅ Demo users created successfully<br>";
+        // Insert student user
+        $stmt = $conn->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
+        $stmt->execute(['student1', $student_hash, 'student']);
+        echo "✅ Student user created<br>";
+        
+        // Insert verifier user
+        $stmt = $conn->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
+        $stmt->execute(['verifier1', $verifier_hash, 'verifier']);
+        echo "✅ Verifier user created<br>";
+        
     } else {
-        echo "ℹ️ Users already exist<br>";
+        echo "ℹ️ Users already exist - skipping<br>";
     }
     
     echo "<br><strong style='color:green;'>✅ Database setup complete!</strong><br>";
-    echo '<a href="index.php" class="btn btn-primary">Go to Login Page</a>';
+    echo '<a href="index.php" class="btn btn-primary mt-3">Go to Login Page</a>';
     
 } catch (PDOException $e) {
     echo "❌ Error: " . $e->getMessage() . "<br>";
+    echo "<br><strong>Debug Info:</strong><br>";
+    echo "File: " . $e->getFile() . "<br>";
+    echo "Line: " . $e->getLine() . "<br>";
 }
 
 $conn = null;
